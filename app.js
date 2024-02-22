@@ -16,46 +16,54 @@ function App() {
     // const mapCordinates = ClassFactory("cordinates", jsonData);
     // const products = ClassFactory("products", jsonData);
 
+    try {
+        const orders = ClassFactory("orders", jsonData);
 
-    const orders = ClassFactory("orders", jsonData);
+        let totalTimeMin = 0;
+        const workingDayMin = 600; //working day is calculate base on  10h
+        const pickingTime = 5;
 
-    let totalTimeMin = 0;
-    let workingDayMin = 600; //working day is calculate base on  10h
-    const pickingTime = 5;
+        for (let i = 0; i < orders.length; i++) {
+            let minTimeToDeliver = MinDeliveryTime(orders[i], jsonData);
+            totalTimeMin += minTimeToDeliver + pickingTime;
 
-    for (let i = 0; i < orders.length; i++) {
-        let minTimeToDeliver = MinDeliveryTime(orders[i], jsonData);
-        totalTimeMin += minTimeToDeliver + pickingTime;
+            i !== (orders.length - 1) && (totalTimeMin += minTimeToDeliver);
+        }
 
-        i !== (orders.length - 1) && (totalTimeMin += minTimeToDeliver);
+        //calculate delivery time in hours
+        let hh = Math.floor(totalTimeMin / 60);
+        //calculate the minutes
+        let mm = Math.round((totalTimeMin / 60 - hh) * 60);
+
+        const droneNeeded = Math.ceil((workingDayMin / totalTimeMin) * orders.length)
+
+        //result
+        console.log(`The time to deliver all orders is ${Math.round(totalTimeMin)} min,\nor ${hh} hours and ${mm} min.`);
+        console.log(`Total drons needed to complete the delivery is ${droneNeeded} .`);
+    } catch (error) {
+        console.log(error);
     }
-
-    let hh = Math.floor(totalTimeMin / 60); //calculate delivery time in hours
-    let mm = Math.round((totalTimeMin / 60 - hh) * 60); //calculate the minutes
-
-    const droneNeeded = Math.ceil((workingDayMin / totalTimeMin) * orders.length)
-
-    console.log(`The time to deliver all orders is ${Math.round(totalTimeMin)} min,\nor ${hh} hours and ${mm} min.`);
-    console.log(`Total drons needed to complete the delivery is ${droneNeeded} .`);
 
 }
 
 function MinDeliveryTime(order, jsonData) {
-    const warehouses = ClassFactory("warehouses", jsonData);
-    const customers = ClassFactory("customers", jsonData);
+    try {
+        let minDistance = Number.MAX_VALUE;
+        const warehouses = ClassFactory("warehouses", jsonData);
+        const customers = ClassFactory("customers", jsonData);
+        let customer = customers.find(customer => order.customerId === customer.id);
 
-    let minDistance = Number.MAX_VALUE;
-    let customer = customers.find(customer => order.customerId === customer.id);
+        for (let i = 0; i < warehouses.length; i++) {
+            let distance = CalculateDistance(customer, warehouses[i])
 
-    for (let i = 0; i < warehouses.length; i++) {
-        let distance = CalculateDistance(customer, warehouses[i])
-
-        if (distance < minDistance) {
-            minDistance = distance;
+            if (distance < minDistance) {
+                minDistance = distance;
+            }
         }
+        return minDistance;
+    } catch (error) {
+        console.log(error);
     }
-
-    return minDistance;
 }
 
 function CalculateDistance(customer, warehouse) {
@@ -63,6 +71,7 @@ function CalculateDistance(customer, warehouse) {
 
     return Math.sqrt(Math.pow(customer.cordinates.x - warehouse.cordinates.x, 2) + Math.pow(customer.cordinates.y - warehouse.cordinates.y, 2));
 }
+
 
 function ClassFactory(name, jsonData) {
     let className = name.toLowerCase();
