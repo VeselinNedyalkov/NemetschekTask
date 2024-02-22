@@ -2,10 +2,10 @@
 const { Cordinates } = require('./Cordinates');
 
 class Customers {
-    constructor(id, name, x, y) {
-        this.customerId = id;
+    constructor(id, name, cordinates) {
+        this.id = id;
         this.name = name;
-        this.coordinates = new Cordinates(x, y);
+        this.cordinates = new Cordinates(cordinates.x, cordinates.y);
     }
 }
 exports.Customers = Customers;
