@@ -101,9 +101,12 @@ function App() {
         //this is array of drones wich will do the delivery of orders
         const dronesForOrders = [...new Array(droneNeeded)].map(() => new Drone(dronesForDelivery.totalCapacity, dronesForDelivery.consumption));
 
+        //TO DO to be ajust from HTML 
+        let ms = 100;
+
         //simulating the drones movement/recharging/picking orders
-        console.log("********************");
-        RealTimeApp(orders, dronesForOrders);
+        LineDivider();
+        RealTimeApp(orders, dronesForOrders, ms);
 
 
     } catch (error) {
@@ -114,21 +117,35 @@ function App() {
 
 }
 
-function RealTimeApp(orders, drones) {
+function LineDivider() {
+    console.log("********************");
+}
+
+function RealTimeApp(orders, drones, ms) {
     for (let i = 1; i <= workingDayMin; i++) {
         //time calculation to return format HH:mm
-        let time = WhatIsTheTime();
+        let clock = ClockCalculator();
+        //method to slow down the for cicle
+        // TimeDelay(ms);
 
+        DronesWorkingVeryHard(drones, orders, clock);
 
-        DronesWorkingVeryHard(drones, orders, time);
+    }
+}
 
+function TimeDelay(ms) {
+    let start = new Date().getTime();
+    let end = start;
+
+    while (end < start + ms) {
+        end = new Date().getTime();
     }
 }
 
 let hh = 8; // the start of the working day
 let mm = 0;
 
-function WhatIsTheTime() {
+function ClockCalculator() {
     let hour;
     let min;
     mm++;
@@ -154,7 +171,7 @@ function WhatIsTheTime() {
     return `${hour}:${min}`;
 }
 
-function DronesWorkingVeryHard(drones, orders, time) {
+function DronesWorkingVeryHard(drones, orders, clock) {
     const status = ["free", "picking order", "deliver", "return", "recharging",];
     let pickingOrder = 5;//time in min for picking client order from warehouse
 
@@ -184,9 +201,9 @@ function DronesWorkingVeryHard(drones, orders, time) {
 
                             curentDrone.timeToComplete = curentDrone.order.distance;
                             curentDrone.status = status[2];
-                            console.log(`${time} - The drone is delivery products to ${customers.find(cust => cust.id === currentOrder.customerId).name}.
+                            console.log(`${clock} - The drone is delivery products to ${customers.find(cust => cust.id === currentOrder.customerId).name}.
                                 \nThe time to delivery will be in next ${curentDrone.timeToComplete}min.`);
-                            console.log("********************");
+                            LineDivider();
 
                         }
                         else {
@@ -201,9 +218,9 @@ function DronesWorkingVeryHard(drones, orders, time) {
                         if (curentDrone.timeToComplete <= 0) {
                             curentDrone.timeToComplete = curentDrone.order.distance;
                             curentDrone.status = status[3];
-                            console.log(`${time} - Delivery completed. The drone is returning to warehouse.
+                            console.log(`${clock} - Delivery completed. The drone is returning to warehouse.
                                 \nTime to return ${curentDrone.timeToComplete}.`);
-                            console.log("********************");
+                            LineDivider();
                         }
                         else {
                             //time is passing
@@ -219,8 +236,8 @@ function DronesWorkingVeryHard(drones, orders, time) {
                         if (curentDrone.timeToComplete <= 0) {
                             curentDrone.status = status[0];
                             curentDrone.order = null;
-                            console.log(`${time} - Drone is back to base and ready for new order!`);
-                            console.log("********************");
+                            console.log(`${clock} - Drone is back to base and ready for new order!`);
+                            LineDivider();
                         }
                         else {
                             //time is passing
@@ -230,10 +247,14 @@ function DronesWorkingVeryHard(drones, orders, time) {
                         break;
 
 
-                    //recharging completed
+                    //recharging completed and the drone is free to take orders
                     case status[4]:
                         if (curentDrone.timeToComplete <= 0) {
                             curentDrone.status = [0];
+                            curentDrone.capacity = curentDrone.totalCapacity;
+                        }
+                        else {
+                            curentDrone.timeToComplete--;
                         }
                         break;
 
@@ -242,7 +263,7 @@ function DronesWorkingVeryHard(drones, orders, time) {
                         break;
                 }
             }
-            else if (curentDrone.order === null) {
+            else if (curentDrone.order === null && curentDrone.status !== status[4]) {
                 //check if the capacity of the drone is enought for the voyage if no recharg
                 if (curentDrone.capacity < (currentOrder.distance * curentDrone.consumption)) {
                     curentDrone.status = status[4];
@@ -255,10 +276,10 @@ function DronesWorkingVeryHard(drones, orders, time) {
                     curentDrone.timeToComplete = pickingOrder;
                     curentDrone.status = status[1];
                     currentOrder.inProgress = true;
-                    console.log(`${time} - One drone is prepearing the order for a client ${customers.find(cust => cust.id === currentOrder.customerId).name}.
+                    console.log(`${clock} - One drone is prepearing the order for a client ${customers.find(cust => cust.id === currentOrder.customerId).name}.
                         \nThe products to delivery :`);
-                    console.log("********************");
                     FormatDataFromObject(currentOrder.productList.products);
+                    LineDivider();
                 }
             }
 
