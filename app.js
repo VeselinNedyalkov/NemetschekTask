@@ -4,8 +4,8 @@
 'use strict';
 
 
-//this is how VScode automaticaly requer class when i refactor it
-//I have an Error msg when try to Import a class at the moment don`t have time to look for solution
+//this is how VScode automaticaly requere a class when i refactor it
+//I have an Error msg when I try to Import a class at the moment don`t have time to look for solution
 const { Drone } = require("./Models/Drone.js");
 const { ClassFactory } = require('./Services/ClassFactory');
 
@@ -54,10 +54,15 @@ function App() {
         let mm = Math.round((totalTimeMin / 60 - hh) * 60);
 
         const droneNeeded = CalculateDroneNeeded(orders, drones);
-
+        const averageDelivery = Math.round(totalTimeMin / orders.length);
         //result
+        LineDivider();
         console.log(`The time to deliver all orders is ${Math.round(totalTimeMin)} min,\nor ${hh} hours and ${mm} min.`);
+        LineDivider();
         console.log(`Total drons needed to complete the delivery in 1 day is ${droneNeeded} drones.`);
+        LineDivider();
+        console.log(`Expected average time for delivery ${averageDelivery} min.`);
+        LineDivider();
 
         function MinDeliveryDistance(order) {
             try {
@@ -90,7 +95,6 @@ function App() {
         }
 
 
-
         function ValidateTheCordinates(jsonData, cordinates) {
             const mapCordinates = ClassFactory("cordinates", jsonData);
 
@@ -98,14 +102,20 @@ function App() {
                 && mapCordinates.y >= cordinates.y && 0 < cordinates.y;
         }
 
+        //TO DO import order from HTML
+        function AddOrders(customerId, produckList) {
+            const newOrder = ClassFactory("orders", customerId, produckList);
+            orders.push(newOrder);
+        }
+
+
         //this is array of drones wich will do the delivery of orders
         const dronesForOrders = [...new Array(droneNeeded)].map(() => new Drone(dronesForDelivery.totalCapacity, dronesForDelivery.consumption));
 
         //TO DO to be ajust from HTML 
-        let ms = 100;
+        let ms = 50;
 
         //simulating the drones movement/recharging/picking orders
-        LineDivider();
         RealTimeApp(orders, dronesForOrders, ms);
 
 
@@ -126,13 +136,14 @@ function RealTimeApp(orders, drones, ms) {
         //time calculation to return format HH:mm
         let clock = ClockCalculator();
         //method to slow down the for cicle
-        // TimeDelay(ms);
+        TimeDelay(ms);
 
         DronesWorkingVeryHard(drones, orders, clock);
 
     }
 }
 
+//method that is not async in order to work the app properly
 function TimeDelay(ms) {
     let start = new Date().getTime();
     let end = start;
@@ -252,6 +263,8 @@ function DronesWorkingVeryHard(drones, orders, clock) {
                         if (curentDrone.timeToComplete <= 0) {
                             curentDrone.status = [0];
                             curentDrone.capacity = curentDrone.totalCapacity;
+                            console.log(`${clock} - The drone is fully recharged with battery capacity ${curentDrone.capacity}W.`)
+                            LineDivider();
                         }
                         else {
                             curentDrone.timeToComplete--;
@@ -265,9 +278,11 @@ function DronesWorkingVeryHard(drones, orders, clock) {
             }
             else if (curentDrone.order === null && curentDrone.status !== status[4]) {
                 //check if the capacity of the drone is enought for the voyage if no recharg
-                if (curentDrone.capacity < (currentOrder.distance * curentDrone.consumption)) {
+                if (curentDrone.capacity < (currentOrder.distance * curentDrone.consumption * 2)) {
                     curentDrone.status = status[4];
                     curentDrone.timeToComplete = curentDrone.DronRecharge(curentDrone.capacity);
+                    console.log(`${clock} - The drone need recharging! It will take ${curentDrone.timeToComplete} min to fully recharg the battery.`);
+                    LineDivider();
                     continue;
                 }
                 else {
@@ -394,6 +409,7 @@ function CalculateDroneNeeded(orders, drones) {
         return dronesNedded;
     }
 }
+
 
 
 App();
