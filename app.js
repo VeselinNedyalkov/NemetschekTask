@@ -1,8 +1,11 @@
-
+//Author : Veselin Nedyalkov - This is  my solution for the "Drones for deliveries"
+//JS is not my primary language and i did my best , base on situatin ,to do the homework
+//for more questions you can write to me in discord -=Veso=- or by phone
 'use strict';
 
 
-
+//this is how VScode automaticaly requer class when i refactor it
+//I have an Error msg when try to Import a class at the moment don`t have time to look for solution
 const { Drone } = require("./Models/Drone.js");
 const { ClassFactory } = require('./Services/ClassFactory');
 
@@ -11,11 +14,13 @@ const jsonData1 = ReadDataFromJson(pathData1);
 
 const pathData2 = './data/data2.json';
 const jsonData2 = ReadDataFromJson(pathData2);
+
 let dronesForDelivery = null;
-const workingDayMin = 600; //working day is calculate base on  10h
+const workingDayMin = 600; //working day in minutes is calculate base on  10h
 exports.workingDayMin = workingDayMin;
 const pickingTime = 5;
 
+//use Class Factory in order to create new classes
 const dronTypeSmall = ClassFactory('small', jsonData2.typesOfDrones[0]);
 const dronTypeMed = ClassFactory('medium', jsonData2.typesOfDrones[1]);
 const dronTypeBig = ClassFactory('big', jsonData2.typesOfDrones[2]);
@@ -24,8 +29,7 @@ function App() {
 
 
     try {
-        // const mapCordinates = ClassFactory("cordinates", jsonData);
-        // const products = ClassFactory("products", jsonData);
+        //use Class Factory in order to create new classes
         const warehouses = ClassFactory("warehouses", jsonData1);
         const customers = ClassFactory("customers", jsonData1);
         const orders = ClassFactory("orders", jsonData1);
@@ -33,10 +37,13 @@ function App() {
 
         let totalTimeMin = 0;
 
+        //callculate min distance from warehouse to customer
+        //safe the distance in orders
+        //and calculate the total time needed to deliver all orders
         for (let i = 0; i < orders.length; i++) {
-            let minTimeToDeliver = MinDeliveryDistance(orders[i]);
-            orders[i].minDistance = minTimeToDeliver;
-            totalTimeMin += minTimeToDeliver + pickingTime;
+            let minTimeToDeliver = Math.ceil(MinDeliveryDistance(orders[i]));
+            orders[i].distance = minTimeToDeliver;
+            totalTimeMin += minTimeToDeliver;
 
             i !== (orders.length - 1) && (totalTimeMin += minTimeToDeliver);
         }
@@ -91,10 +98,11 @@ function App() {
                 && mapCordinates.y >= cordinates.y && 0 < cordinates.y;
         }
 
-        //all drones needed for delivery 
-        const dronesForOrders = [...new Array(droneNeeded)].map(() => new Drone(dronesForDelivery.capacity, dronesForDelivery.consumption));
+        //this is array of drones wich will do the delivery of orders
+        const dronesForOrders = [...new Array(droneNeeded)].map(() => new Drone(dronesForDelivery.totalCapacity, dronesForDelivery.consumption));
 
-
+        //simulating the drones movement/recharging/picking orders
+        console.log("********************");
         RealTimeApp(orders, dronesForOrders);
 
 
@@ -107,79 +115,169 @@ function App() {
 }
 
 function RealTimeApp(orders, drones) {
-    let hh = 8;
-
-
     for (let i = 1; i <= workingDayMin; i++) {
-        let time = WhatIsTheTime(hh, i - 2);
+        //time calculation to return format HH:mm
+        let time = WhatIsTheTime();
 
-        // DronesWorkingVeryHard(drones, orders, time);
+
+        DronesWorkingVeryHard(drones, orders, time);
 
     }
 }
 
+let hh = 8; // the start of the working day
+let mm = 0;
 
+function WhatIsTheTime() {
+    let hour;
+    let min;
+    mm++;
+
+    if (mm >= 60) {
+        hh++;
+        mm -= 60;
+    }
+
+    //formating the time to be - 01 or 10
+    if (hh < 10) {
+        hour = `0${hh}`;
+    } else {
+        hour = hh;
+    };
+
+    if (mm < 10) {
+        min = `0${mm}`
+    } else {
+        min = mm;
+    };
+
+    return `${hour}:${min}`;
+}
 
 function DronesWorkingVeryHard(drones, orders, time) {
-    let pickingOrder = 5;
+    const status = ["free", "picking order", "deliver", "return", "recharging",];
+    let pickingOrder = 5;//time in min for picking client order from warehouse
+
     const customers = ClassFactory("customers", jsonData1);
 
+    // check the orders min by min if the order is not in progress and there is free drone
+    // he will take the order and go to complete it
     for (let k = 0; k < orders.length; k++) {
 
+        //select current order
         let currentOrder = orders[k];
+
 
         for (let j = 0; j < drones.length; j++) {
 
+            //select drone
             let curentDrone = drones[j];
-            curentDrone.timeToComplete--;
 
-            if (curentDrone.timeToComplete <= 0 && curentDrone.customerId === -1) {
+            //if the curent order is in progress check:
+            if (currentOrder.inProgress) {
+                switch (curentDrone.status) {
+
+                    //Drone is delivering
+                    case status[1]:
+                        //time is 0 the order is departure to deliver the order
+                        if (curentDrone.timeToComplete <= 0) {
+
+                            curentDrone.timeToComplete = curentDrone.order.distance;
+                            curentDrone.status = status[2];
+                            console.log(`${time} - The drone is delivery products to ${customers.find(cust => cust.id === currentOrder.customerId).name}.
+                                \nThe time to delivery will be in next ${curentDrone.timeToComplete}min.`);
+                            console.log("********************");
+
+                        }
+                        else {
+                            //time is passing
+                            curentDrone.timeToComplete--;
+                        }
+                        break;
+
+                    //drone delivered the order and it`s going back to the warehouse
+                    case status[2]:
+
+                        if (curentDrone.timeToComplete <= 0) {
+                            curentDrone.timeToComplete = curentDrone.order.distance;
+                            curentDrone.status = status[3];
+                            console.log(`${time} - Delivery completed. The drone is returning to warehouse.
+                                \nTime to return ${curentDrone.timeToComplete}.`);
+                            console.log("********************");
+                        }
+                        else {
+                            //time is passing
+                            curentDrone.timeToComplete--;
+                            curentDrone.capacity -= curentDrone.consumption;
+                        }
+
+                        break;
+
+                    //the drone is back to base and reset for new order
+                    case status[3]:
+
+                        if (curentDrone.timeToComplete <= 0) {
+                            curentDrone.status = status[0];
+                            curentDrone.order = null;
+                            console.log(`${time} - Drone is back to base and ready for new order!`);
+                            console.log("********************");
+                        }
+                        else {
+                            //time is passing
+                            curentDrone.timeToComplete--;
+                            curentDrone.capacity -= curentDrone.consumption;
+                        }
+                        break;
 
 
-                if (!currentOrder.inProgress) {
+                    //recharging completed
+                    case status[4]:
+                        if (curentDrone.timeToComplete <= 0) {
+                            curentDrone.status = [0];
+                        }
+                        break;
 
-                    console.log(`${time} - the drone is picking order for ${customers[currentOrder.customerId].name} time needed ${pickingOrder} min.`);
 
-                    currentOrder.inProgress = true;
-                    curentDrone.isWorking = true;
+                    default:
+                        break;
+                }
+            }
+            else if (curentDrone.order === null) {
+                //check if the capacity of the drone is enought for the voyage if no recharg
+                if (curentDrone.capacity < (currentOrder.distance * curentDrone.consumption)) {
+                    curentDrone.status = status[4];
+                    curentDrone.timeToComplete = curentDrone.DronRecharge(curentDrone.capacity);
+                    continue;
+                }
+                else {
+                    //the drone is picking up a order to deliver to a client
+                    curentDrone.order = currentOrder;
                     curentDrone.timeToComplete = pickingOrder;
-                    curentDrone.isWorking = true;
-                    curentDrone.customerId = currentOrder.customerId;
+                    curentDrone.status = status[1];
+                    currentOrder.inProgress = true;
+                    console.log(`${time} - One drone is prepearing the order for a client ${customers.find(cust => cust.id === currentOrder.customerId).name}.
+                        \nThe products to delivery :`);
+                    console.log("********************");
+                    FormatDataFromObject(currentOrder.productList.products);
                 }
             }
-            else if (curentDrone.isWorking && curentDrone.customerId === currentOrder.customerId) {
 
-                console.log(`${time} - the drone is going to deliver to ${customers[currentOrder.customerId].name} in ${currentOrder.distance}`);
 
-                if (curentDrone.capacity < (currentOrder.distance * 2)) {
-                    currentOrder.distance += curentDrone.DronRecharge();
-                    console.log(`The Drone need rechargin! It will take ${curentDrone.DronRecharge()}min`);
-                }
 
-                currentOrder.distance--;
-            }
-            else if (currentOrder.distance === 0 && currentOrder.inProgress === true) {
-                console.log(`The drone delivered the products to ${customers[currentOrder.customerId].name}`);
-            }
         }
     }
 }
 
-function WhatIsTheTime(hh, mm) {
-    let count = 1;
-    mm++;
+function FormatDataFromObject(obj) {
 
-    if (mm > 60) {
-        hh++;
-        mm -= 60 * count;
-        count++;
-    }
+    Object.entries(obj).forEach(([key, value]) => {
+        console.log(`${key} - ${value}`);
 
-    if (hh < 10) hh = `0${hh}`;
-    if (mm < 10) mm = `0${mm}`;
-
-    return `${hh}:${mm}`;
+    });
 }
+
+
+
 
 function ReadDataFromJson(path) {
     const fs = require('fs');
@@ -191,7 +289,8 @@ function ReadDataFromJson(path) {
 
 
 
-//calculate drones base on lower coast (looking for the smallest posible drone)
+//Accepting that drones need to be from the same type in order be more easy to maintan
+//and base on the distance we pick the proper one/ones
 function CalculateDroneNeeded(orders, drones) {
     let capacityEnought = true;
 
@@ -202,8 +301,9 @@ function CalculateDroneNeeded(orders, drones) {
 
         //check if the distance is enought for the dron capacity
         for (let j = 0; j < orders.length; j++) {
+            let totalConsumption = (orders[j].distance * 2) * drones[i].consumption;
 
-            if (drones[i].capacity > orders[j].minDistance * 2) {
+            if (drones[i].capacity > totalConsumption) {
                 continue;
             }
             else {
@@ -213,7 +313,7 @@ function CalculateDroneNeeded(orders, drones) {
 
         }
 
-        //0 - small type , 1 - medium type / 2- large type
+        //0 - small type / 1 - medium type / 2- large type
         if (i === 0 && capacityEnought) {
             dronesForDelivery = dronTypeSmall;
             break;
@@ -242,16 +342,18 @@ function CalculateDroneNeeded(orders, drones) {
             let workingDayMinPerDrone = workingDayMin * dronesNedded;
 
 
-            let orderTotalDistance = (orders[j].minDistance * 2);
-            let calculateCapacityForTrip = drone.capacity - orderTotalDistance;
+            let orderTotalDistance = (orders[j].distance * 2);
+            let calculateCapacityForTrip = drone.capacity - (orderTotalDistance * drone.consumption);
 
             //if capacity for the trip si enought - add the time for traveling
             // + the time for loading
             if (calculateCapacityForTrip < orderTotalDistance) {
                 totalTime += orderTotalDistance + timeForLoadingMin;
+                drone.capacity -= calculateCapacityForTrip;
             }
             else {
                 //if no - add also time for dron recharging
+                console.log(drone.DronRecharge(drone.capacity))
                 totalTime += orderTotalDistance + timeForLoadingMin + drone.DronRecharge(drone.capacity);
             }
 
@@ -261,6 +363,8 @@ function CalculateDroneNeeded(orders, drones) {
             if (totalTime > workingDayMinPerDrone) {
                 dronesNedded++;
                 totalTime = 0;
+                //recursion calling the method - add one more dron and now 
+                //we increase the working day base on that tha each dron can work 10 hours
                 NumberOfDrones();
                 break;
             }

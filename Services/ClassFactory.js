@@ -22,12 +22,11 @@ function ClassFactory(name, jsonData) {
 
         case "orders": return jsonData.orders.map(ord => new Orders(ord.customerId, ord.productList));
 
-        case "small":
-            return new Drone(GetDroneCapacity(jsonData), GetDronConsumption(jsonData));
+        case "small": return new Drone(Number(`${GetDroneCapacity(jsonData)}`), Number(`${GetDronConsumption(jsonData)}`));
 
-        case "medium": return new Drone(GetDroneCapacity(jsonData), GetDronConsumption(jsonData));
+        case "medium": return new Drone(Number(`${GetDroneCapacity(jsonData)}`), Number(`${GetDronConsumption(jsonData)}`));
 
-        case "big": return new Drone(GetDroneCapacity(jsonData), GetDronConsumption(jsonData));
+        case "big": return new Drone(Number(`${GetDroneCapacity(jsonData)}`), Number(`${GetDronConsumption(jsonData)}`));
 
         default: throw new Error("Wrong class name!");
     }
@@ -35,6 +34,7 @@ function ClassFactory(name, jsonData) {
 }
 
 exports.ClassFactory = ClassFactory;
+
 
 function GetDroneCapacity(jsonData) {
     return jsonData.capacity.includes("kW") ? jsonData.capacity.substring(0, jsonData.capacity.length - 2) * 1000 : jsonData.capacity.substring(0, jsonData.capacity.length - 1);
